@@ -737,20 +737,17 @@ class PHPWebSocket
 		return $this->wsSendClientMessage($clientID, $binary ? self::WS_OPCODE_BINARY : self::WS_OPCODE_TEXT, $message);
 	}
 
-	function log( $message )
-	{
+	function log( $message ){
 		echo date('Y-m-d H:i:s: ') . $message . "\n";
 	}
 
-	function bind( $type, $func )
-	{
+	function bind( $type, $func ){
 		if ( !isset($this->wsOnEvents[$type]) )
 			$this->wsOnEvents[$type] = array();
 		$this->wsOnEvents[$type][] = $func;
 	}
 
-	function unbind( $type='' )
-	{
+	function unbind( $type='' ){
 		if ( $type ) unset($this->wsOnEvents[$type]);
 		else $this->wsOnEvents = array();
 	}

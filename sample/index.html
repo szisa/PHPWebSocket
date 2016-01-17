@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset='UTF-8' />
+	<title>创软俱乐部 WebSocket 接口</title>
+	<style>
+		input, textarea {border:1px solid #CCC;margin:0px;padding:0px}
+		code{padding-top: 0.2em;padding-bottom: 0.2em;margin: 0;font-size: 85%;background-color: rgba(0,0,0,0.04);border-radius: 3px;}
+		#body {max-width:800px;margin:auto}
+		#log {width:100%;height:400px}
+		#message {width:100%;line-height:20px}
+	</style>
+	<script src="jquery.min.js"></script>
+	<script>
+		var sock;
+
+		function log( text ) {
+			$log = $('#log');
+			$log.append(($log.val()?"\n":'')+text.replace(/(^\s*)|(\s*$)/g, ""));
+			$log[0].scrollTop = $log[0].scrollHeight - $log[0].clientHeight;
+		}
+
+		$(document).ready(function() {
+			var url = 'ws://ws.sxisa.org:10240'
+
+			// 开启连接
+			if ( typeof(MozWebSocket) == 'function' )
+				sock = new MozWebSocket(url);
+			else
+				sock = new WebSocket(url);
+			log('Connecting...');
+
+			// 发送消息
+			$('#message').keypress(function(e) {
+				if ( e.keyCode == 13 && this.value ) {
+					log( 'You said: ' + this.value );
+					sock.send( this.value );
+					$(this).val('');
+				}
+			});
+
+			// 成功建立连接
+			sock.onopen = function() {
+				log( "You Connected." );
+				sock.send( "{::List}" ); // 发送获取在线列表指令
+			};
+
+			// 关闭连接
+			sock.onclose = function( data ) {
+				log( "You Disconnected." );
+			};
+
+			// 收到server的消息
+			sock.onmessage = function( ev ) {
+				var data = JSON.parse(ev.data);
+				var msg = "";
+				if (data["list"] != undefined) {        //  收到在线列表
+					for(var i = 0; i < data["list"].length; i++)
+					{
+						msg += data["list"][i]["ip"] + "(" + data["list"][i]["id"] + ") was online.\n";
+					}
+				}
+				else if(data["status"] == "sendmsg"){   // 收到客户端发送消息
+					msg = data["user"]["ip"] + "(" + data["user"]["id"] + ") said:" + data["msg"];
+				}
+				else if(data["status"] == "connect"){   // 收到客户端上线通知
+					msg = data["user"]["ip"] + "(" + data["user"]["id"] + ") was online.";
+				}
+				else if(data["status"] == "disconnect"){ // 收到客户端下线通知
+					msg = data["user"]["ip"] + "(" + data["user"]["id"] + ") was offline.";
+				}
+				log( msg );
+			};
+		});
+	</script>
+</head>
+
+<body>
+	<div id='body'>
+		<textarea id='log' name='log' readonly='readonly'></textarea><br/>
+		<input type='text' id='message' name='message' placeholder="Send a message"/>
+		<div class="tip">
+			<h1>WebSocket 接口</h1>
+			<h2>地址：</h2><p>ws://ws.sxisa.org:10240</p>
+			<h2>用法：</h2><p>请参照此页面Js代码。</p>
+			<h2>Message指令：</h2><p><code>{::List}</code> 获取当前在线列表。</p>
+			<h2>接口格式(Sample)：</h2>
+			<ol>
+			<li><p>通信接口：</p>
+			<p><pre lang="json">
+{
+	"user" : {
+		"id" : "1",
+		"ip" : "192.168.0.1"
+	},
+	"status" : "connect/disconnect/message",
+	"msg" : "the message which send"
+}
+			</pre></p></li>
+			<li><p>在线列表：</p>
+			<p><pre lang="json">
+{
+	"list" : [{
+		"id" : "1",
+		"ip" : "192.168.0.1"
+	},
+	{
+		"id" : "2",
+		"ip" : "192.168.0.2"
+	}]
+}
+			</pre></p></li>
+		</ol>
+		</div>
+	</div>
+</body>
+
+</html>
